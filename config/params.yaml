@@ -1,0 +1,8 @@
+edge_brush:
+  pointCloudTopic: "/lidar_points"
+  lidarFrame: "sim/velodyne"
+  edgeThreshold: 0.001
+  cmdTopic: "nav/cmd_vel"
+  targetDis: 0.7
+  linearKp: 0.7
+  angularKp: 0.01
