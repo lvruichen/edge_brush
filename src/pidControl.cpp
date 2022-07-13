@@ -38,13 +38,13 @@ public:
     if (edgeMsg->Xdir > 0) {
       dir_vec(0) = edgeMsg->Xdir;
       dir_vec(1) = edgeMsg->Ydir;
-      c = sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
-          (distance - targetDis) * sign(dir_vec(1));
+      c = -1 * sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
+          (distance - targetDis);
     } else {
       dir_vec(0) = -1 * edgeMsg->Xdir;
       dir_vec(1) = -1 * edgeMsg->Ydir;
-      c = sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
-          (distance - targetDis) * sign(dir_vec(1));
+      c = -1 * sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
+          (distance - targetDis);
     }
     targetPoint(0) = 1;
     targetPoint(1) = (dir_vec(1) + c) / dir_vec(0);
