@@ -35,14 +35,19 @@ public:
   void edgeHandler(const edge_brush::edge::ConstPtr &edgeMsg) {
     this->distance = edgeMsg->distance;
     this->angleDiff = edgeMsg->angleDiff;
-    if (edgeMsg->Xdir > 0) {
-      dir_vec(0) = edgeMsg->Xdir;
-      dir_vec(1) = edgeMsg->Ydir;
-      c = -1 * sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
-          (distance - targetDis);
-    } else {
+    if (edgeMsg->Xdir < 0) {
       dir_vec(0) = -1 * edgeMsg->Xdir;
       dir_vec(1) = -1 * edgeMsg->Ydir;
+    } else {
+      dir_vec(0) = edgeMsg->Xdir;
+      dir_vec(1) = edgeMsg->Ydir;
+    }
+
+    if (edgeMsg->edgePos > 0) {
+      c = sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
+          (distance - targetDis);
+      cout << c << endl;
+    } else {
       c = -1 * sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
           (distance - targetDis);
     }

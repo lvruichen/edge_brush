@@ -4,10 +4,16 @@ EdgeDetection::EdgeDetection() {
   nh_.param<std::string>("edge_brush/pointCloudTopic", pointCloudTopic,
                          "lidar_points");
   nh_.param<std::string>("edge_brush/lidarFrame", lidarFrame, "velodyne");
+  nh_.param<std::string>("edge_brush/odomTopic", odomTopic,
+                         "odom_basefootprint");
   nh_.param<float>("edge_brush/edgeThreshold", edgeThreshold, 0.01);
+  nh_.param<vector<float>>("edge_brush/trimDlimit", min_pt, {0, -2, -1.5, 0});
+  nh_.param<vector<float>>("edge_brush/trimUlimit", max_pt, {1, 2, -1.1, 0});
 
   subLidarCloud = nh_.subscribe<sensor_msgs::PointCloud2>(
       pointCloudTopic, 5, &EdgeDetection::cloudHandler, this);
+  subOdomRaw = nh_.subscribe<nav_msgs::Odometry>(
+      odomTopic, 20, &EdgeDetection::odomHandler, this);
   pubEdgeCloud = nh_.advertise<sensor_msgs::PointCloud2>("edge_cloud", 1);
   pubTrimCloud = nh_.advertise<sensor_msgs::PointCloud2>("trim_cloud", 1);
   pubEdgeMarker =
@@ -28,6 +34,7 @@ void EdgeDetection::allocateMemory() {
 
 void EdgeDetection::cloudHandler(
     const sensor_msgs::PointCloud2ConstPtr &lidarCloudMsg) {
+  std::lock_guard<std::mutex> lock(mtx);
   cloudHeader = lidarCloudMsg->header;
   currentCloudMsg = std::move(*lidarCloudMsg);
   pcl::moveFromROSMsg(currentCloudMsg, *lidarCloudIn);
@@ -53,11 +60,73 @@ void EdgeDetection::cloudHandler(
   publishCloud(pubTrimCloud, trimmedCloud, cloudHeader.stamp, lidarFrame);
   projectCloud();
   getEdgeCloud();
-  // cout << "egde_vec num is " << edge_vec.size() << endl;
+  transEdgeCloud();
+  // cout << edgeQueue.size() << endl;
   publishCloud(pubEdgeCloud, edgeCloud, cloudHeader.stamp, lidarFrame);
   calculatePCA();
   visualizeEdge();
   resetParameters();
+}
+
+Eigen::Affine3f odom2affine(nav_msgs::Odometry odom) {
+  double x, y, z, roll, pitch, yaw;
+  x = odom.pose.pose.position.x;
+  y = odom.pose.pose.position.y;
+  z = odom.pose.pose.position.z;
+  tf::Quaternion orientation;
+  tf::quaternionMsgToTF(odom.pose.pose.orientation, orientation);
+  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+  return pcl::getTransformation(x, y, z, roll, pitch, yaw);
+}
+
+void EdgeDetection::odomHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
+  lock_guard<std::mutex> lock(mtx);
+  static bool firstTrans = true;
+  if (firstTrans) {
+    curodomAffine = odom2affine(*odomMsg);
+    lastodomAffine = curodomAffine;
+    keyposeAffine = curodomAffine;
+    increodomAffineInv = Eigen::Affine3f::Identity();
+    firstTrans = false;
+    keyposeFlag = 0;
+    return;
+  }
+  curodomAffine = odom2affine(*odomMsg);
+  increodomAffineInv = curodomAffine.inverse() * lastodomAffine;
+  // change the queue to the current frame
+  lastodomAffine = curodomAffine;
+  Eigen::Affine3f increKeyPose;
+  increKeyPose = keyposeAffine.inverse() * curodomAffine;
+  float increDis = increKeyPose.translation().norm();
+  if (increDis > 0.1) {
+    keyposeAffine = curodomAffine;
+    keyposeFlag = 1;
+  }
+}
+
+void EdgeDetection::transEdgeCloud() {
+  for (int i = 0; i < edgeQueue.size(); i++) {
+    PointType thisPoint;
+    thisPoint.x = increodomAffineInv(0, 0) * edgeQueue[i].x +
+                  increodomAffineInv(0, 1) * edgeQueue[i].y +
+                  increodomAffineInv(0, 2) * edgeQueue[i].z +
+                  increodomAffineInv(0, 3);
+    thisPoint.y = increodomAffineInv(1, 0) * edgeQueue[i].x +
+                  increodomAffineInv(1, 1) * edgeQueue[i].y +
+                  increodomAffineInv(1, 2) * edgeQueue[i].z +
+                  increodomAffineInv(1, 3);
+    thisPoint.z = increodomAffineInv(2, 0) * edgeQueue[i].x +
+                  increodomAffineInv(2, 1) * edgeQueue[i].y +
+                  increodomAffineInv(2, 2) * edgeQueue[i].z +
+                  increodomAffineInv(2, 3);
+    edgeQueue[i].x = thisPoint.x;
+    edgeQueue[i].y = thisPoint.y;
+    edgeQueue[i].z = thisPoint.z;
+    sort(edgeQueue.begin(), edgeQueue.end(), by_xvalue());
+  }
+  while (edgeQueue.front().x < -2) {
+    edgeQueue.pop_front();
+  }
 }
 
 void EdgeDetection::resetParameters() {
@@ -75,7 +144,10 @@ void EdgeDetection::areaFilter() {
     return;
 
   vector<int> indices;
-  pcl::getPointsInBox(*lidarCloudIn, min_pt, max_pt, indices);
+  Eigen::Vector4f min_pt_vec(min_pt[0], min_pt[1], min_pt[2], min_pt[3]);
+  Eigen::Vector4f max_pt_vec(max_pt[0], max_pt[1], max_pt[2], max_pt[3]);
+
+  pcl::getPointsInBox(*lidarCloudIn, min_pt_vec, max_pt_vec, indices);
   for (size_t i = 0; i < indices.size(); i++) {
     trimmedCloud->points.push_back(lidarCloudIn->points[indices[i]]);
   }
@@ -106,6 +178,12 @@ void EdgeDetection::getEdgeCloud() {
     std::sort(cloud_vec[i].begin(), cloud_vec[i].end(), by_col());
     calculateSmooth(validRing);
     findEdgeCloud(validRing);
+    if (keyposeFlag) {
+      for (size_t i = 0; i < edge_vec.size(); i++) {
+        edgeQueue.push_back(edge_vec[i]);
+      }
+      keyposeFlag = 0;
+    }
   }
 }
 
@@ -143,12 +221,13 @@ void EdgeDetection::findEdgeCloud(int ringId) {
   if (idx != -1) {
     thisPoint = cloud_vec[ringId][idx].point;
     edge_vec.push_back(thisPoint);
+
     edgeCloud->points.push_back(thisPoint);
   }
 }
 
 void EdgeDetection::checkEdgeCloud(pointwithsmooth &p) {
-  if (p.smooth < edgeThreshold || (abs(p.point.y) < 0.3))
+  if (p.smooth < edgeThreshold || (abs(p.point.y) < 0))
     p.smooth = 0;
 }
 
@@ -164,7 +243,7 @@ void EdgeDetection::publishCloud(const ros::Publisher &thisPub,
 }
 
 void EdgeDetection::calculatePCA() {
-  if (edgeCloud->points.size() < 3)
+  if (edgeCloud->points.size() < 2)
     return;
   Eigen::Vector4f pcaCentroid;
   pcl::compute3DCentroid(*edgeCloud, pcaCentroid);
@@ -180,13 +259,12 @@ void EdgeDetection::calculatePCA() {
       abs((mainDir(0) * pcaCentroid(1) - mainDir(1) * pcaCentroid(0)) /
           (sqrt(mainDir(0) * mainDir(0) + mainDir(1) * mainDir(1))));
   double angelDiff = atan2(mainDir(1), mainDir(0)) * 180 / M_PI;
-  // cout << distance << endl;
-  // cout << angelDiff << endl;
   edge_brush::edge ed;
   ed.distance = distance;
   ed.angleDiff = angelDiff;
   ed.Xdir = mainDir(0);
   ed.Ydir = mainDir(1);
+  ed.edgePos = sign(pcaCentroid(1));
   pubEgdeInfo.publish(ed);
 }
 

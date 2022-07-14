@@ -3,6 +3,9 @@ edge_brush:
   lidarFrame: "sim/velodyne"
   edgeThreshold: 0.001
   cmdTopic: "nav/cmd_vel"
-  targetDis: 0.7
-  linearKp: 0.7
+  targetDis: 0.8
+  linearKp: 0.5
   angularKp: 0.01
+  trimDlimit: [0, -2, -1.5, 0]
+  trimUlimit: [1.3, 2, -1.1, 0]
+  odomTopic: "odom_basefootprint"

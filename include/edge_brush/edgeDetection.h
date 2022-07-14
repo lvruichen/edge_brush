@@ -1,4 +1,7 @@
 #include "edge_brush/edge.h"
+#include <deque>
+#include <mutex>
+#include <nav_msgs/Odometry.h>
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
@@ -6,10 +9,14 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <string>
+#include <tf/LinearMath/Quaternion.h>
+#include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+
 using namespace std;
 typedef pcl::PointXYZ PointType;
+#define sign(x) (((x) < 0) ? -1 : ((x) > 0))
 
 struct RSPointXYZR {
   PCL_ADD_POINT4D
@@ -34,10 +41,17 @@ struct by_col {
   }
 };
 
+struct by_xvalue {
+  bool operator()(PointType const &left, PointType const &right) {
+    return left.x < right.x;
+  }
+};
+
 class EdgeDetection {
 private:
   ros::NodeHandle nh_;
   ros::Subscriber subLidarCloud;
+  ros::Subscriber subOdomRaw;
   ros::Publisher pubTrimCloud;
   ros::Publisher pubEdgeCloud;
   ros::Publisher pubEdgeMarker;
@@ -54,15 +68,24 @@ private:
   // Topics and Frames
   string pointCloudTopic;
   string lidarFrame;
+  string odomTopic;
+
+  Eigen::Affine3f curodomAffine;
+  Eigen::Affine3f lastodomAffine;
+  Eigen::Affine3f increodomAffineInv;
+  Eigen::Affine3f keyposeAffine;
 
   int ringFlag;
+  int keyposeFlag;
   float edgeThreshold;
+  bool firstTrans = true;
   //修改到yaml
-  Eigen::Vector4f min_pt = {0, -2, -1.5, 0};
-  Eigen::Vector4f max_pt = {1, 2, -1.1, 0};
-
+  vector<float> min_pt = {0, -2, -1.5, 0};
+  vector<float> max_pt = {1, 2, -1.1, 0};
   vector<vector<pointwithsmooth>> cloud_vec;
   vector<PointType> edge_vec;
+  deque<PointType> edgeQueue;
+  mutex mtx;
 
 public:
   EdgeDetection();
@@ -70,6 +93,7 @@ public:
   void allocateMemory();
   void resetParameters();
   void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &lidarCloudMsg);
+  void odomHandler(const nav_msgs::Odometry::ConstPtr &odomMsg);
   void areaFilter();
   template <typename T>
   void publishCloud(const ros::Publisher &thisPub, const T &thisCloud,
@@ -78,6 +102,7 @@ public:
   void getEdgeCloud();
   void calculateSmooth(int ringId);
   void findEdgeCloud(int ringId);
+  void transEdgeCloud();
   void checkEdgeCloud(pointwithsmooth &p);
   void calculatePCA();
 
