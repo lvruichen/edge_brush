@@ -1,6 +1,6 @@
 edge_brush:
-  pointCloudTopic: "/lidar_points"
-  lidarFrame: "sim/velodyne"
+  pointCloudTopic: "/rslidar_points"
+  lidarFrame: "rslidar_link"
   edgeThreshold: 0.001
   cmdTopic: "nav/cmd_vel"
   targetDis: 0.8

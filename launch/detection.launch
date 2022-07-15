@@ -1,5 +1,5 @@
 <launch>
 <rosparam file="$(find edge_brush)/config/params.yaml" command="load" />
 <node pkg="edge_brush" name="edge_detection_node" type="edgeDetection" output="screen"/>
-<node pkg="edge_brush" name="pid_control_node" type="pidControl" output="screen"/>
+<!-- <node pkg="edge_brush" name="pid_control_node" type="pidControl" output="screen"/> -->
 </launch>

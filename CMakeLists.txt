@@ -51,3 +51,6 @@ target_link_libraries(edgeDetection ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(pidControl src/pidControl.cpp)
 target_link_libraries(pidControl ${catkin_LIBRARIES})
+
+add_executable(transCloud src/transCloud.cpp)
+target_link_libraries(transCloud ${catkin_LIBRARIES})

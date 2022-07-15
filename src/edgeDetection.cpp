@@ -41,7 +41,7 @@ void EdgeDetection::cloudHandler(
   if (lidarCloudIn->is_dense == false) {
     ROS_WARN("Point cloud is not in dense format, please remove NaN points "
              "first!");
-    ros::shutdown();
+    // ros::shutdown();
     // vector<int> mapping;
     // pcl::removeNaNFromPointCloud(*lidarCloudIn, *lidarCloudIn, mapping);
   }
@@ -56,15 +56,15 @@ void EdgeDetection::cloudHandler(
              "your point cloud data!");
     ros::shutdown();
   }
-  areaFilter();
-  publishCloud(pubTrimCloud, trimmedCloud, cloudHeader.stamp, lidarFrame);
-  projectCloud();
-  getEdgeCloud();
-  transEdgeCloud();
-  // cout << edgeQueue.size() << endl;
-  publishCloud(pubEdgeCloud, edgeCloud, cloudHeader.stamp, lidarFrame);
-  calculatePCA();
-  visualizeEdge();
+  // areaFilter();
+  // publishCloud(pubTrimCloud, trimmedCloud, cloudHeader.stamp, lidarFrame);
+  // projectCloud();
+  // getEdgeCloud();
+  // transEdgeCloud();
+  // // cout << edgeQueue.size() << endl;
+  // publishCloud(pubEdgeCloud, edgeCloud, cloudHeader.stamp, lidarFrame);
+  // calculatePCA();
+  // visualizeEdge();
   resetParameters();
 }
 
