@@ -6,6 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /MarkerArray1
+        - /PointCloud24
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -120,8 +122,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.782036781311035
-        Min Value: -2.1115803718566895
+        Max Value: -0.00025784107856452465
+        Min Value: -0.5097596049308777
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -145,11 +147,47 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /edge_marker
+      Name: MarkerArray
+      Namespaces:
+        edge_detected: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.10000000149011612
+      Style: Flat Squares
+      Topic: /cloud_cluster
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: base_link
+    Fixed Frame: rslidar_sim
     Frame Rate: 30
   Name: root
   Tools:
@@ -173,7 +211,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.229825019836426
+      Distance: 3.891598701477051
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -181,17 +219,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.35289356112480164
+        Y: 0.12123993039131165
+        Z: -0.09318272769451141
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.44039860367774963
+      Pitch: 0.7103983759880066
       Target Frame: <Fixed Frame>
-      Yaw: 3.310380458831787
+      Yaw: 3.2003753185272217
     Saved: ~
 Window Geometry:
   Displays:
@@ -209,5 +247,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1848
-  X: 1122
-  Y: 302
+  X: 72
+  Y: 27

@@ -11,7 +11,7 @@ private:
   ros::NodeHandle nh_;
   ros::Subscriber subLidarCloud;
   ros::Publisher pubLidarCloud;
-  string frame_id = "rslidar";
+  string frame_id = "rslidar_sim";
   string pointCloudTopic = "/rslidar_points";
   string pubTopic = "/rslidar_points_trans";
   std_msgs::Header header;

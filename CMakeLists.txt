@@ -57,3 +57,6 @@ target_link_libraries(transCloud ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(groundFilter src/groundFilter.cpp)
 target_link_libraries(groundFilter ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(rsedgeDetection src/rsedgeDetection.cpp)
+target_link_libraries(rsedgeDetection ${catkin_LIBRARIES} ${PCL_LIBRARIES})

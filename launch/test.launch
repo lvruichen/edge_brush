@@ -1,9 +1,0 @@
-<launch>
-<param name="/use_sim_time" value="true"/>
-<node pkg="rosbag" name="rosbag" type="play" args="/home/eric/data/edge.bag --clock" output="screen"/>
-<node pkg="tf" type="static_transform_publisher" name="rslidar_base" args="0 0 0 0 0 0 /base_link /rslidar 100"/>
-<node pkg="edge_brush" name="transCloud" type="transCloud" output="screen"/>
-<node pkg="edge_brush" name="groundFilter" type="groundFilter" output="screen"/>
-
-<node name="rviz" pkg="rviz" type="rviz" args="-d $(find edge_brush)/config/rslidar.rviz" />
-</launch>

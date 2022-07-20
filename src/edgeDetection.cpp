@@ -8,7 +8,7 @@ EdgeDetection::EdgeDetection() {
                          "odom_basefootprint");
   nh_.param<float>("edge_brush/edgeThreshold", edgeThreshold, 0.01);
   nh_.param<vector<float>>("edge_brush/trimDlimit", min_pt, {0, -2, -1.5, 0});
-  nh_.param<vector<float>>("edge_brush/trimUlimit", max_pt, {1, 2, -1.1, 0});
+  nh_.param<vector<float>>("edge_brush/trimUlimit", max_pt, {1, 2, 0, 0});
 
   subLidarCloud = nh_.subscribe<sensor_msgs::PointCloud2>(
       pointCloudTopic, 5, &EdgeDetection::cloudHandler, this);
@@ -18,7 +18,7 @@ EdgeDetection::EdgeDetection() {
   pubTrimCloud = nh_.advertise<sensor_msgs::PointCloud2>("trim_cloud", 1);
   pubEdgeMarker =
       nh_.advertise<visualization_msgs::MarkerArray>("edge_marker", 1);
-  pubEgdeInfo = nh_.advertise<edge_brush::edge>("edge_info", 1);
+  pubEdgeInfo = nh_.advertise<edge_brush::edge>("edge_info", 1);
   allocateMemory();
 }
 
@@ -265,7 +265,7 @@ void EdgeDetection::calculatePCA() {
   ed.Xdir = mainDir(0);
   ed.Ydir = mainDir(1);
   ed.edgePos = sign(pcaCentroid(1));
-  pubEgdeInfo.publish(ed);
+  pubEdgeInfo.publish(ed);
 }
 
 void EdgeDetection::visualizeEdge() {

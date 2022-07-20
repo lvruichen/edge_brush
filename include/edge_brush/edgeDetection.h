@@ -55,7 +55,7 @@ private:
   ros::Publisher pubTrimCloud;
   ros::Publisher pubEdgeCloud;
   ros::Publisher pubEdgeMarker;
-  ros::Publisher pubEgdeInfo;
+  ros::Publisher pubEdgeInfo;
 
   std_msgs::Header cloudHeader;
 

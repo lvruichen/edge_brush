@@ -1,0 +1,10 @@
+edge_brush:
+  pointCloudTopic: "/rslidar_points"
+  lidarFrame: "rslidar_link"
+  cmdTopic: "nav/cmd_vel"
+  targetDis: 0.8
+  linearKp: 0.5
+  angularKp: 0.01
+  trimDlimit: [0, -2, -1.5, 0]
+  trimUlimit: [1.3, 2, -1.1, 0]
+  odomTopic: "odom_basefootprint"
