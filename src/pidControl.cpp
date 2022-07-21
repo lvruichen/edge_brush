@@ -57,13 +57,13 @@ public:
   }
   void publishVel() {
     geometry_msgs::Twist v;
-    v.linear.x = targetPoint.norm() * linearKp;
+    v.linear.x = min(targetPoint.norm() * linearKp, float(0.5));
     v.linear.y = 0;
     v.linear.z = 0;
     v.angular.x = 0;
     v.angular.y = 0;
-    v.angular.z =
-        atan2(targetPoint(1), targetPoint(0)) * 180 / M_PI * angulerKp;
+    v.angular.z = min(
+        atan2(targetPoint(1), targetPoint(0)) * 180 / M_PI * angulerKp, 2.0);
     pubCmdVel.publish(v);
   }
 };
