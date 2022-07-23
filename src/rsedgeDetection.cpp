@@ -30,18 +30,19 @@ private:
   ros::Publisher pubEdgeCloud;
   ros::Publisher pubEdgeInfo;
   ros::Publisher pubEdgeMarker;
-  // ros::Publisher pubClusterCloud;
+  ros::Publisher pubClusterCloud;
   sensor_msgs::PointCloud2 clusterMsg;
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloudIn;
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloudOut;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2d;
   pcl::PointCloud<PointType>::Ptr edgeCloud;
-  // pcl::search::KdTree<pcl::PointXYZI>::Ptr tree;
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree;
 
-  float *edgeArray = new float[20];
-  int *edgeIdx = new int[20];
-  float resolution = 0.1;
-  int queueLength = 20;
+  float *edgeArray = new float[50];
+  int *edgeIdx = new int[50];
+  float resolution = 0.05;
+  int queueLength = 50;
   string lidarFrame;
   std_msgs::Header cloudHeader;
   vector<PointType> edge_vec;
@@ -54,13 +55,14 @@ public:
     pubEdgeInfo = nh_.advertise<edge_brush::edge>("edge_info", 1);
     pubEdgeMarker =
         nh_.advertise<visualization_msgs::MarkerArray>("edge_marker", 1);
-    // pubClusterCloud =
-    // nh_.advertise<sensor_msgs::PointCloud2>("cloud_cluster", 1);
+    pubClusterCloud =
+        nh_.advertise<sensor_msgs::PointCloud2>("cloud_cluster", 1);
 
     cloudIn.reset(new pcl::PointCloud<pcl::PointXYZI>());
     cloudOut.reset(new pcl::PointCloud<pcl::PointXYZI>());
     edgeCloud.reset(new pcl::PointCloud<PointType>());
-    // tree.reset(new pcl::search::KdTree<pcl::PointXYZI>());
+    cloud2d.reset(new pcl::PointCloud<pcl::PointXYZ>());
+    tree.reset(new pcl::search::KdTree<pcl::PointXYZ>());
     resetParameters();
   }
 
@@ -79,40 +81,43 @@ public:
     if (cloudIn->points.size() < 30)
       return;
     // cluster the edge
-    // tree->setInputCloud(cloudIn);
-    // vector<pcl::PointIndices> local_indices;
-    // pcl::EuclideanClusterExtraction<pcl::PointXYZI> euclid;
-    // euclid.setInputCloud(cloudIn);
-    // euclid.setClusterTolerance(0.5);
-    // euclid.setMaxClusterSize(700);
-    // euclid.setMinClusterSize(10);
-    // euclid.setSearchMethod(tree);
-    // euclid.extract(local_indices);
-    // if (local_indices.size() == 0)
-    //   return;
-    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloudCluster(
-    //     new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::copyPointCloud(*cloudIn, *cloud2d);
 
-    // for (auto pit = local_indices[0].indices.begin();
-    //      pit != local_indices[0].indices.end(); ++pit) {
-    //   pcl::PointXYZ p;
-    //   p.x = cloudIn->points[*pit].x;
-    //   p.y = cloudIn->points[*pit].y;
-    //   p.z = cloudIn->points[*pit].z;
-    //   cloudCluster->push_back(p);
-    // }
-    // cout << "the size of cluster is: " << cloudCluster->points.size() <<
-    // endl;
+    for (int i = 0; i < cloud2d->points.size(); i++) {
+      cloud2d->points[i].z = 0;
+    }
+    tree->setInputCloud(cloud2d);
+    vector<pcl::PointIndices> local_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> euclid;
+    euclid.setInputCloud(cloud2d);
+    euclid.setClusterTolerance(0.1);
+    euclid.setMaxClusterSize(10000);
+    euclid.setMinClusterSize(1);
+    euclid.setSearchMethod(tree);
+    euclid.extract(local_indices);
+    if (local_indices.size() == 0)
+      return;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudCluster(
+        new pcl::PointCloud<pcl::PointXYZ>);
 
-    // publishCloud(pubClusterCloud, cloudCluster, cloudHeader.stamp,
-    //              cloudHeader.frame_id);
+    for (auto pit = local_indices[0].indices.begin();
+         pit != local_indices[0].indices.end(); ++pit) {
+      pcl::PointXYZ p;
+      p.x = cloudIn->points[*pit].x;
+      p.y = cloudIn->points[*pit].y;
+      p.z = cloudIn->points[*pit].z;
+      cloudCluster->push_back(p);
+    }
 
-    for (size_t i = 0; i < cloudIn->points.size(); i++) {
-      x = cloudIn->points[i].x;
-      y = cloudIn->points[i].y;
+    publishCloud(pubClusterCloud, cloudCluster, cloudHeader.stamp,
+                 cloudHeader.frame_id);
+
+    for (size_t i = 0; i < cloudCluster->points.size(); i++) {
+      x = cloudCluster->points[i].x;
+      y = cloudCluster->points[i].y;
       idx = (int)(x / resolution);
-      if (idx == 20)
-        idx -= 1;
+      if (idx >= 50)
+        continue;
       abs_y = abs(y);
       if (abs_y < edgeArray[idx]) {
         edgeArray[idx] = y;
@@ -129,18 +134,27 @@ public:
       // if the edge is too close ,treat it as noise point
       if (abs(cloudIn->points[idx].y) < 0.5)
         continue;
-      thisPoint.x = cloudIn->points[idx].x;
-      thisPoint.y = cloudIn->points[idx].y;
+      thisPoint.x = cloudCluster->points[idx].x;
+      thisPoint.y = cloudCluster->points[idx].y;
       thisPoint.z = -0.55;
       edge_vec.push_back(thisPoint);
-      edgeCloud->points.push_back(thisPoint);
     }
+    checkEdge();
 
     calculatePCA();
 
     visualizeEdge();
 
     resetParameters();
+  }
+
+  float pointDistance(PointType p) {
+    return sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+  }
+
+  float pointDistance(PointType p1, PointType p2) {
+    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) +
+                (p1.z - p2.z) * (p1.z - p2.z));
   }
 
   void resetParameters() {
@@ -165,6 +179,19 @@ public:
     if (thisPub.getNumSubscribers() != 0)
       thisPub.publish(tempCloud);
     return tempCloud;
+  }
+
+  void checkEdge() {
+    if (edge_vec.size() < 3)
+      ROS_INFO("too few edge points is detected");
+    return;
+    for (int i = 1; i < edge_vec.size() - 1; i++) {
+      if (pointDistance(edge_vec[i - 1], edge_vec[i]) > 0.1 &&
+          pointDistance(edge_vec[i], edge_vec[i + 1]) > 0.1) {
+        continue;
+      }
+      edgeCloud->emplace_back(edge_vec[i]);
+    }
   }
 
   void calculatePCA() {

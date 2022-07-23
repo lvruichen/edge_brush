@@ -46,7 +46,6 @@ public:
     if (edgeMsg->edgePos > 0) {
       c = sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
           (distance - targetDis);
-      cout << c << endl;
     } else {
       c = -1 * sqrt(dir_vec(0) * dir_vec(0) + dir_vec(1) * dir_vec(1)) *
           (distance - targetDis);

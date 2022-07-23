@@ -11,9 +11,12 @@ private:
   ros::NodeHandle nh_;
   ros::Subscriber subLidarCloud;
   ros::Publisher pubLidarCloud;
-  string frame_id = "rslidar_sim";
-  string pointCloudTopic = "/rslidar_points";
+
+  string lidarFrame;
+  string pointCloudTopic;
   string pubTopic = "/rslidar_points_trans";
+  string odomTopic;
+
   std_msgs::Header header;
   sensor_msgs::PointCloud2 transCloudMsg;
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloudIn;
@@ -25,6 +28,14 @@ private:
 
 public:
   TransCloud() {
+    nh_.param<std::string>("edge_brush/pointCloudTopic", pointCloudTopic,
+                           "lidar_points");
+    nh_.param<std::string>("edge_brush/lidarFrame", lidarFrame, "velodyne");
+    nh_.param<std::string>("edge_brush/odomTopic", odomTopic,
+                           "odom_basefootprint");
+    nh_.param<vector<float>>("edge_brush/trimDlimit", min_pt, {0, -2, -1.5, 0});
+    nh_.param<vector<float>>("edge_brush/trimUlimit", max_pt, {1, 2, 0, 0});
+
     subLidarCloud = nh_.subscribe<sensor_msgs::PointCloud2>(
         pointCloudTopic, 10, &TransCloud::cloudHandler, this);
     pubLidarCloud = nh_.advertise<sensor_msgs::PointCloud2>(pubTopic, 1);
@@ -32,7 +43,6 @@ public:
     cloudOut.reset(new pcl::PointCloud<pcl::PointXYZI>());
     cloudTrim.reset(new pcl::PointCloud<pcl::PointXYZI>());
     transMatrix = pcl::getTransformation(0, 0, 0, M_PI, -M_PI_2, 0);
-    // cout << transMatrix.matrix() << endl;
   }
 
   ~TransCloud() {}
@@ -47,7 +57,7 @@ public:
     pcl::transformPointCloud(*cloudIn, *cloudOut, transMatrix);
     areaFilter();
     pcl::toROSMsg(*cloudTrim, transCloudMsg);
-    transCloudMsg.header.frame_id = frame_id;
+    transCloudMsg.header.frame_id = lidarFrame;
     transCloudMsg.header.stamp = header.stamp;
     pubLidarCloud.publish(transCloudMsg);
     resetParamsters();
