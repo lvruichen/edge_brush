@@ -90,7 +90,7 @@ public:
     vector<pcl::PointIndices> local_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> euclid;
     euclid.setInputCloud(cloud2d);
-    euclid.setClusterTolerance(0.1);
+    euclid.setClusterTolerance(0.2);
     euclid.setMaxClusterSize(10000);
     euclid.setMinClusterSize(1);
     euclid.setSearchMethod(tree);
@@ -182,12 +182,13 @@ public:
   }
 
   void checkEdge() {
-    if (edge_vec.size() < 3)
+    if (edge_vec.size() < 3) {
       ROS_INFO("too few edge points is detected");
-    return;
+      return;
+    }
     for (int i = 1; i < edge_vec.size() - 1; i++) {
-      if (pointDistance(edge_vec[i - 1], edge_vec[i]) > 0.1 &&
-          pointDistance(edge_vec[i], edge_vec[i + 1]) > 0.1) {
+      if (pointDistance(edge_vec[i - 1], edge_vec[i]) > 0.2 &&
+          pointDistance(edge_vec[i], edge_vec[i + 1]) > 0.2) {
         continue;
       }
       edgeCloud->emplace_back(edge_vec[i]);

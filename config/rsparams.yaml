@@ -2,9 +2,21 @@ edge_brush:
   pointCloudTopic: "/rslidar_points"
   lidarFrame: "rslidar_sim"
   cmdTopic: "nav/cmd_vel"
+
   targetDis: 0.65
-  linearKp: 0.5
-  angularKp: 0.01
-  trimDlimit: [0, -1, -1, 0]
-  trimUlimit: [1.3, 1, -0.3, 0]
+  spareDis: 0.6 #spare some dis to avoid collision when turning
+  angularKi: 0.01
+  angularKd: 0.01
+
+  linearKpI: 0.2
+  angularKpI: 0.01
+
+  linearKpO: 0.5
+  angularKpO: 0.01
+
+  linearKpM: 0.5
+  angularKpM: 0.01
+
+  trimDlimit: [0, -2, -1, 0]
+  trimUlimit: [1.3, 2, -0.3, 0]
   odomTopic: "odom_basefootprint"
