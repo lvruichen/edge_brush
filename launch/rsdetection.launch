@@ -1,4 +1,6 @@
 <launch>
+<env name="GAZEBO_MODEL_PATH" value="$(find edge_brush)/models"/>
+<env name="GAZEBO_RESOURCE_PATH" value="$(find edge_brush)/models"/>
 <param name="/use_sim_time" value="true"/>
 <rosparam file="$(find edge_brush)/config/rsparams.yaml" command="load" />
 <!-- <node pkg="rosbag" name="rosbag" type="play" args="/home/eric/data/edge.bag"/> -->
